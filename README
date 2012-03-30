@@ -1,3 +1,6 @@
+THIS DOES NOT CURRENTLY WORK ; it is highly work in progress/me learning to write a python extension.
+
 This is intended to be a port of my C++ vector/quaternion/matrix classes for python.
 
 I'm trying to make it a C module (for speed), we'll see if I succeed.
+

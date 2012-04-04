@@ -1,37 +1,31 @@
-/**
- * \file Vector.h
- * \author Pompei2
- * \date 1 February 2010
- * \brief This file contains the vector class definition. This class defines a 3-component vector.
- **/
-
-#pragma once
-
-#include "Utilities/Math.h"
-
-#ifdef __cplusplus
+////////////////////////////////////////////////////////////
+//
+// Bouge - Modern and flexible skeletal animation library
+// Copyright (C) 2010 Lucas Beyer (pompei2@gmail.com)
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it freely,
+// subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented;
+//    you must not claim that you wrote the original software.
+//    If you use this software in a product, an acknowledgment
+//    in the product documentation would be appreciated but is not required.
+//
+// 2. Altered source versions must be plainly marked as such,
+//    and must not be misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
+////////////////////////////////////////////////////////////
+#ifndef PYGLM_VECTOR_H
+#define PYGLM_VECTOR_H
 
 #include <string>
-
-namespace PyGlMath {
-    class Vector;
-}
-
-///////////////////////////
-// Vector serialization. //
-///////////////////////////
-/// Serializes a vector to a file. Use it like this: f << v1 << v2 << etc.
-/// \param f The file to write the vector to.
-/// \param v The vector to write to the file.
-/// \return a reference to the file to allow chaining.
-template<class T>
-T& operator<<(T& f, const PyGlMath::Vector& v);
-/// Extracts a vector from a file. Use it like this: f >> v1 >> v2 >> etc.
-/// \param f The file to read the vector from.
-/// \param v The vector to write the read values to.
-/// \return a reference to the file to allow chaining.
-template<class T>
-T& operator>>(T& f, PyGlMath::Vector& v);
+#include <vector>
 
 namespace PyGlMath {
     class Base4x4Matrix;
@@ -47,10 +41,9 @@ namespace PyGlMath {
 /// example. After such a transformation, the coordinate needs to be
 /// de-homogenized. De-homogenisation is the act of dividing all components by
 /// w, thus making it become the special point again: (x/w,y/w,z/w,1).\n
-/// This class currently only always holds the de-homogenised version of the
-/// coordinates. You may fiddle with it using the operator[] but it is not
-/// guaranteed to produce the expected results. More support for de/homogenisation
-/// will be added when needed.
+/// This class currently does not do the de-homogenization.
+/// \note This class *holds* 4 components but all of the mathematical operations are
+/// only done using the first three components thus an usual 3D vector.
 class Vector {
 public:
     ////////////////////////////////////////////
@@ -61,30 +54,29 @@ public:
     Vector();
     /// Creates a vector based on the contents of a float array.
     /// \param in_v The three coordinates of the vector.
-    Vector(float in_v[3]);
-    /// Creates a vector.
+    Vector(const float in_v[3]);
+    /// Creates a vector (with w set to 1).
     /// \param in_fX The value of the first component of the vector.
     /// \param in_fY The value of the second component of the vector.
     /// \param in_fZ The value of the third component of the vector.
     Vector(float in_fX, float in_fY, float in_fZ);
-    /// Creates a \e dehomogenized vector or a vector with the homogeneous
-    /// component (w) set to 0 using the arguments.
+    /// Creates a vector with four components.
     /// \param in_fX The value of the first component of the vector.
     /// \param in_fY The value of the second component of the vector.
     /// \param in_fZ The value of the third component of the vector.
-    /// \param in_fW The value of the homogeneous component of the vector.
-    /// \warning the value of the homogeneous component of the vector will
-    ///          \e not be stored. Rather, the coordinate will be dehomogenized.
-    /// \note \e IF \a in_fW is nearly zero, it will be stored as 0.
+    /// \param in_fW The value of the fourth component of the vector.
     Vector(float in_fX, float in_fY, float in_fZ, float in_fW);
-    /// Creates a \e dehomogenized vector or a vector with the homogeneous
-    /// component (w) set to 0 using the arguments.
+    /// Creates a vector with four components.
     /// \param in_v The first three components to be copied.
-    /// \param in_fW The value of the homogeneous component of the vector.
-    /// \warning the value of the homogeneous component of the vector will
-    ///          \e not be stored. Rather, the coordinate will be dehomogenized.
-    /// \note \e IF \a in_fW is nearly zero, it will be stored as 0.
+    /// \param in_fW The value of the fourth component of the vector.
     Vector(const Vector& in_v, float in_fW);
+    /// Creates a vector using the data from a stl vector.
+    Vector(const std::vector<float>& in_v);
+    /// Creates a vector using the floats coming out of an iterator.
+    /// \param in_begin The iterator producing the floats we want.
+    /// \param in_end An iterator pointing to one element past the last we can use.
+    template<class FloatIterator>
+    Vector(FloatIterator in_begin, const FloatIterator& in_end);
     /// Copies a vector.
     /// \param in_v The vector to be copied.
     Vector(const Vector& in_v);
@@ -92,6 +84,7 @@ public:
     /// \param in_v The vector to be copied.
     /// \return a const reference to myself that might be used as a rvalue.
     const Vector& operator=(const Vector& in_v);
+#ifdef BOUGE_COMPILE_CPP0X
     /// Moves a vector.
     /// \param in_v The vector to be moved.
     Vector(Vector&& in_v);
@@ -99,6 +92,7 @@ public:
     /// \param in_v The vector to be moved.
     /// \return a const reference to myself that might be used as a rvalue.
     const Vector& operator=(Vector&& in_v);
+#endif // BOUGE_COMPILE_CPP0X
     ~Vector();
 
     ///////////////////////////////////////
@@ -107,10 +101,11 @@ public:
 
     /// \return A read-only array of three floats holding the values of the
     ///         three components of this vector.
-    inline const float *array3f() const {return m_v;};
+    inline const float *array3f() const {return &m_v[0];};
     /// \return A read-only array of four floats holding the values of the
     ///         three components of this vector and the w component set to 1.0f.
-    inline const float *array4f() const {return m_v;};
+    inline const float *array4f() const {return &m_v[0];};
+    /// \return A read-only stl vector holding the values.
 
     /// \return A string-representation of the vector.
     /// \param in_iDecimalPlaces The amount of numbers to print behind the dot.
@@ -138,12 +133,12 @@ public:
     /// Access the elements of this vector.
     /// \param idx The index of the element of this vector. This may only be a
     ///            value between 0 and 3.
-    /// \throws NotExistException if \a idx is >3.
+    /// \throws std::out_of_range if \a idx is >3.
     float& operator[](unsigned int idx);
     /// Access the elements of this vector in read-only.
     /// \param idx The index of the element of this vector. This may only be a
     ///            value between 0 and 3.
-    /// \throws NotExistException if \a idx is >3.
+    /// \throws std::out_of_range if \a idx is >3.
     float operator[](unsigned int idx) const;
 
     ////////////////////////////////
@@ -165,6 +160,10 @@ public:
     /// \param in_f The scaling factor.
     /// \returns the vector resulting from this * \a in_f (this multiplied component-wise by f).
     Vector operator *(float in_f) const;
+    /// Creates a component-wise scaled vector.
+    /// \param in_v The scaling factors.
+    /// \returns the vector resulting from this multiplied component-wise by \a in_v
+    Vector operator *(const Vector& in_v) const;
 
     /// \param in_v The vector to add to this vector. The result is stored in this vector.
     void operator +=(const Vector& in_v);
@@ -195,6 +194,17 @@ public:
     /// \return A normalized copy of this vector. It has unit length.
     Vector normalized() const;
 
+    /// \return A copy of this vector with all negative entries turned positive.
+    Vector abs() const;
+
+    /// "Cleans up" the vector by rounding unreasonably small values.
+    /// Specifically, if the vector is near zero, sets it to exactly zero.
+    /// \return a reference to *this
+    Vector& cleanup();
+    /// \return A "Clean" copy of this vector, that is unreasonably small values
+    ///         have been rounded and if this is near zero, returns the 0 vector.
+    Vector cleanedup() const;
+
     //////////////////////////////////////
     // Vector interpolation operations. //
     //////////////////////////////////////
@@ -218,10 +228,7 @@ public:
     /// \return true if this is shorter or has the same length as \a in_v.
     inline bool operator <=(const Vector& in_v) const {return this->len() <= in_v.len();};
     /// \return true if this is \e nearly the same as \a in_v.
-    inline bool operator ==(const Vector& in_v) const {
-        Vector diff = *this - in_v;
-        return nearZero(diff.x()) && nearZero(diff.y()) && nearZero(diff.z());
-    };
+    bool operator ==(const Vector& in_v) const;
     /// \return true if this is \e not \e nearly the same as \a in_v.
     inline bool operator !=(const Vector& in_v) const {return !this->operator==(in_v);};
 
@@ -230,7 +237,7 @@ private:
     /// \note this array actually holds four components in case it needs to be
     ///       given to a function that requires that. The fourth component is
     ///       always one though.
-    float* m_v;
+    std::vector<float> m_v;
 };
 
 ///////////////////////////
@@ -255,4 +262,6 @@ inline Vector operator *(float in_f, const Vector& in_v) {
 #include "Vector.inl"
 
 } // namespace PyGlMath
+
+#endif // PYGLM_VECTOR_H
 

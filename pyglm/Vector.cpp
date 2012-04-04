@@ -1,34 +1,48 @@
-/**
- * \file vector.cpp
- * \author Pompei2
- * \date 1 February 2010
- * \brief This file contains the implementation of the vector class. This class defines a 3-component vector.
- **/
+////////////////////////////////////////////////////////////
+//
+// Bouge - Modern and flexible skeletal animation library
+// Copyright (C) 2010 Lucas Beyer (pompei2@gmail.com)
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it freely,
+// subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented;
+//    you must not claim that you wrote the original software.
+//    If you use this software in a product, an acknowledgment
+//    in the product documentation would be appreciated but is not required.
+//
+// 2. Altered source versions must be plainly marked as such,
+//    and must not be misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
+////////////////////////////////////////////////////////////
 
 #include "Vector.hpp"
 #include "Matrix.hpp"
+#include "Util.hpp"
 
 #include <sstream>
-#include <stdexcept>
 #include <cmath>
 
-using namespace PyGlMath
+namespace PyGlMath {
 
 ////////////////////////////////////////////
 // Constructors and assignment operators. //
 ////////////////////////////////////////////
 
 Vector::Vector()
-    : m_v(new float[4])
+    : m_v(4, 0.0f)
 {
-    m_v[0] = 0.0f;
-    m_v[1] = 0.0f;
-    m_v[2] = 0.0f;
     m_v[3] = 1.0f;
 }
 
-Vector::Vector(float in_v[3])
-    : m_v(new float[4])
+Vector::Vector(const float in_v[3])
+    : m_v(4)
 {
     m_v[0] = in_v[0];
     m_v[1] = in_v[1];
@@ -37,7 +51,7 @@ Vector::Vector(float in_v[3])
 }
 
 Vector::Vector(const Vector& in_v)
-    : m_v(new float[4])
+    : m_v(4)
 {
     m_v[0] = in_v.x();
     m_v[1] = in_v.y();
@@ -56,7 +70,7 @@ const Vector& Vector::operator=(const Vector& in_v)
 }
 
 Vector::Vector(float in_fX, float in_fY, float in_fZ)
-    : m_v(new float[4])
+    : m_v(4)
 {
     m_v[0] = in_fX;
     m_v[1] = in_fY;
@@ -65,54 +79,45 @@ Vector::Vector(float in_fX, float in_fY, float in_fZ)
 }
 
 Vector::Vector(float in_fX, float in_fY, float in_fZ, float in_fW)
-    : m_v(new float[4])
+    : m_v(4)
 {
-    if(nearZero(in_fW)) {
-        m_v[0] = in_fX;
-        m_v[1] = in_fY;
-        m_v[2] = in_fZ;
-        m_v[3] = 0.0f;
-    } else {
-        m_v[0] = in_fX/in_fW;
-        m_v[1] = in_fY/in_fW;
-        m_v[2] = in_fZ/in_fW;
-        m_v[3] = 1.0f;
-    }
+    m_v[0] = in_fX;
+    m_v[1] = in_fY;
+    m_v[2] = in_fZ;
+    m_v[3] = in_fW;
 }
 
 Vector::Vector(const Vector& in_v, float in_fW)
-    : m_v(new float[4])
+    : m_v(4)
 {
-    if(nearZero(in_fW)) {
-        m_v[0] = in_v.x();
-        m_v[1] = in_v.y();
-        m_v[2] = in_v.z();
-        m_v[3] = 0.0f;
-    } else {
-        m_v[0] = in_v.x()/in_fW;
-        m_v[1] = in_v.y()/in_fW;
-        m_v[2] = in_v.z()/in_fW;
-        m_v[3] = 1.0f;
+    m_v[0] = in_v.x();
+    m_v[1] = in_v.y();
+    m_v[2] = in_v.z();
+    m_v[3] = in_fW;
+}
+
+Vector::Vector(const std::vector<float>& in_v)
+    : m_v(4)
+{
+    for(std::vector<float>::size_type i = 0 ; i < 4 && i < in_v.size() ; ++i) {
+        m_v[i] = in_v.at(i);
     }
 }
 
+#ifdef BOUGE_COMPILE_CPP0X
 Vector::Vector(Vector&& in_v)
-{
-    this->operator=(std::move(in_v));
-}
+    : m_v(std::move(in_v.m_v))
+{ }
 
 const Vector& Vector::operator=(Vector&& in_v)
 {
-    m_v = in_v.m_v;
-    in_v.m_v = 0;
-
+    m_v = std::move(in_v.m_v);
     return *this;
 }
+#endif // BOUGE_COMPILE_CPP0X
 
 Vector::~Vector()
-{
-    if(m_v) delete [] m_v;
-}
+{ }
 
 ///////////////////////////////////////
 // Conversion methods and operators. //
@@ -123,7 +128,13 @@ std::string Vector::to_s(unsigned int in_iDecimalPlaces) const
     std::stringstream ss;
     ss.precision(in_iDecimalPlaces);
     ss.fill(' ');
-    ss <<  "(" << this->x() << ", " << this->y() << ", " << this->z() << ")";
+    ss <<  "(" << this->x() << ", " << this->y() << ", " << this->z();
+
+    // Only show the 4th component if it is not 1.
+    if(!nearZero(m_v[3] - 1.0f))
+        ss << ", " << m_v[3];
+
+    ss << ")";
     return ss.str();
 }
 
@@ -138,17 +149,11 @@ Vector::operator std::string() const
 
 float& Vector::operator[](unsigned int idx)
 {
-    if(idx > 3)
-        throw std::runtime_error("Index out of bounds in Vector[i]");
-
     return m_v[idx];
 }
 
 float Vector::operator[](unsigned int idx) const
 {
-    if(idx > 3)
-        throw std::runtime_error("Index out of bounds in Vector[i] const");
-
     return m_v[idx];
 }
 
@@ -180,6 +185,13 @@ Vector Vector::operator *(float in_f) const
     return Vector(this->x() * in_f,
                   this->y() * in_f,
                   this->z() * in_f);
+}
+
+Vector Vector::operator *(const Vector& in_v) const
+{
+    return Vector(this->x() * in_v.x(),
+                  this->y() * in_v.y(),
+                  this->z() * in_v.z());
 }
 
 void Vector::operator +=(const Vector& in_v)
@@ -267,6 +279,37 @@ Vector Vector::normalized() const
     return copy.normalize();
 }
 
+Vector Vector::abs() const
+{
+    return Vector(std::abs(this->x()), std::abs(this->y()), std::abs(this->z()), std::abs((*this)[3]));
+}
+
+Vector& Vector::cleanup()
+{
+    if(nearZero(fract(this->x())))
+        this->x(std::floor(this->x()));
+    else if(nearZero(fract(this->x()) - 1.0f))
+        this->x(std::ceil(this->x()));
+
+    if(nearZero(fract(this->y())))
+        this->y(std::floor(this->y()));
+    else if(nearZero(fract(this->y()) - 1.0f))
+        this->y(std::ceil(this->y()));
+
+    if(nearZero(fract(this->z())))
+        this->z(std::floor(this->z()));
+    else if(nearZero(fract(this->z()) - 1.0f))
+        this->z(std::ceil(this->z()));
+
+    return *this;
+}
+
+Vector Vector::cleanedup() const
+{
+    Vector copy(*this);
+    return copy.cleanup();
+}
+
 //////////////////////////////////////
 // Vector interpolation operations. //
 //////////////////////////////////////
@@ -274,6 +317,15 @@ Vector Vector::normalized() const
 Vector Vector::lerp(const Vector& v2, float between) const
 {
     return *this + (v2 - *this)*between;
+}
+
+///////////////////////////////////
+// Vector comparison operations. //
+///////////////////////////////////
+bool Vector::operator ==(const Vector& in_v) const
+{
+    Vector diff = *this - in_v;
+    return nearZero(diff.x()) && nearZero(diff.y()) && nearZero(diff.z());
 }
 
 ////////////////////////////
@@ -287,4 +339,6 @@ Vector operator*(const Base4x4Matrix& m, const Vector& v)
                   m[2]*v[0] + m[6]*v[1] + m[10]*v[2] + m[14]*v[3],
                   m[3]*v[0] + m[7]*v[1] + m[11]*v[2] + m[15]*v[3]);
 }
+
+} // namespace PyGlMath
 

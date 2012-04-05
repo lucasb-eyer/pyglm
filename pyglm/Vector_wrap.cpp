@@ -53,6 +53,10 @@ public:
 
         PYCXX_ADD_VARARGS_METHOD(cross, cross, "Cross product of this vector with another one. Results in a new vector." );
         PYCXX_ADD_VARARGS_METHOD(dot, dot, "Dot product of this vector with another one. Results in a float." );
+        PYCXX_ADD_NOARGS_METHOD(len, len, "Returns the length of the vector. (Not the dimensions.)");
+        PYCXX_ADD_NOARGS_METHOD(normalize, normalize, "Normalizes (gives unit length to) the vector itself, returns nothing.");
+        PYCXX_ADD_NOARGS_METHOD(normalized, normalized, "Returns a normalized (unit length) copy of this vector. Self remains unchanged.");
+        PYCXX_ADD_KEYWORDS_METHOD(lerp, lerp, "Returns a new vector which is the linear interpolation between self and the first argument 'other' at the second argument 'between'.");
 
         // Call to make the type ready for use
         behaviors().readyType();
@@ -125,7 +129,7 @@ public:
             case Py_GE: return m_vec >= other.m_vec ? Py::True() : Py::False();
             }
         } else {
-            throw Py::AttributeError("expecting Vector object for compare");
+            throw Py::TypeError("expecting Vector object for compare");
         }
     }
 
@@ -157,7 +161,7 @@ public:
 
             return make_inst(m_vec + other.m_vec);
         } else {
-            throw Py::AttributeError("expecting Vector object for addition");
+            throw Py::TypeError("expecting Vector object for addition");
         }
     }
 
@@ -169,25 +173,32 @@ public:
 
             return make_inst(m_vec - other.m_vec);
         } else {
-            throw Py::AttributeError("expecting Vector object for subtraction");
+            throw Py::TypeError("expecting Vector object for subtraction");
         }
     }
 
     Py::Object number_multiply(const Py::Object& other_)
     {
+        if(Vector::check(other_)) {
+            Py::PythonClassObject<Vector> other__(other_);
+            const Vector& other = *other__.getCxxObject();
+
+            return make_inst(m_vec * other.m_vec);
+        }
+
         try {
             Py::Float other(other_);
 
             return make_inst(m_vec * other);
-        } catch(const Py::Exception& e) {
-            throw Py::TypeError("A vector may only be muliplied by a number, i.e. scaled. Please use 'dot' and 'cross' for the dot product and the cross product of two vectors respectively.");
+        } catch(const Py::Exception& ) {
+            throw Py::TypeError("A vector may only be muliplied by a number or element-wise by a Vector instance.");
         }
     }
 
     Py::Object cross(const Py::Tuple &args)
     {
         if(args.length() != 1) {
-            throw Py::ValueError("Vector.cross product can only take one vector as argument");
+            throw Py::TypeError("Vector.cross product takes one argument");
         }
 
         if(!Vector::check(args[0])) {
@@ -204,11 +215,11 @@ public:
     Py::Object dot(const Py::Tuple &args)
     {
         if(args.length() != 1) {
-            throw Py::ValueError("Vector.dot product can only take one vector as argument");
+            throw Py::TypeError("Vector.dot product takes one argument");
         }
 
         if(!Vector::check(args[0])) {
-            throw Py::TypeError("Vector.dot product can only take a vector as argument");
+            throw Py::TypeError("Vector.dot product takes a Vector argument");
         }
 
         Py::PythonClassObject<Vector> other_(args[0]);
@@ -217,6 +228,73 @@ public:
         return Py::Float(m_vec.dot(other.m_vec));
     }
     PYCXX_VARARGS_METHOD_DECL(Vector, dot)
+
+    Py::Object len()
+    {
+        return Py::Float(m_vec.len());
+    }
+    PYCXX_NOARGS_METHOD_DECL(Vector, len)
+
+    Py::Object normalize()
+    {
+        m_vec.normalize();
+        return Py::None();
+    }
+    PYCXX_NOARGS_METHOD_DECL(Vector, normalize)
+
+    Py::Object normalized()
+    {
+        return make_inst(m_vec.normalized());
+    }
+    PYCXX_NOARGS_METHOD_DECL(Vector, normalized)
+
+    Py::Object lerp(const Py::Tuple& args, const Py::Dict& kwargs)
+    {
+        if(args.length() + kwargs.length() != 2) {
+            throw Py::ValueError("Vector.lerp takes two arguments: first ('other') another vector and second ('between') a number or a vector for element-wise lerp.");
+        }
+
+        Py::Object other_arg;
+        if(args.length() > 0) {
+            if(!Vector::check(args[0])) {
+                throw Py::TypeError("Vector.lerp takes a Vector as first argument");
+            }
+            other_arg = args[0];
+        } else {
+            if(!kwargs.hasKey("other")) {
+                throw Py::ValueError("Vector.lerp needs the 'other' argument");
+            }
+            other_arg = kwargs.getItem("other");
+        }
+
+        Py::PythonClassObject<Vector> other_(other_arg);
+        const Vector& other = *other_.getCxxObject();
+
+        Py::Object between_arg;
+        if(args.length() == 2) {
+            between_arg = args[1];
+        } else if(kwargs.hasKey("between")) {
+            between_arg = kwargs.getItem("between");
+        } else {
+            throw Py::ValueError("Vector.lerp needs the 'between' argument.");
+        }
+
+        if(Vector::check(between_arg)) {
+            Py::PythonClassObject<Vector> between_(between_arg);
+            const Vector& between = *between_.getCxxObject();
+
+            return make_inst(m_vec.lerp(other.m_vec, between.m_vec));
+        }
+
+        try {
+            Py::Float between(between_arg);
+
+            return make_inst(m_vec.lerp(other.m_vec, between));
+        } catch(const Py::Exception& ) {
+            throw Py::TypeError("The second argument to Vector.lerp ('between') needs to be a numeric value or a vector.");
+        }
+    }
+    PYCXX_KEYWORDS_METHOD_DECL(Vector, lerp)
 
     PyGlMath::Vector m_vec;
 };

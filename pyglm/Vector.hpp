@@ -215,6 +215,12 @@ public:
     /// \return A vector resulting from the linear interpolation of this and \a v2, at time \a between
     Vector lerp(const Vector& v2, float between) const;
 
+    /// Elementwise linear interpolation between this and v2
+    /// \param v2 The other vector with which to interpolate.
+    /// \param between The time of interpolation. 0.0f results in this, 1.0f results in \a v2.
+    /// \return A vector resulting from the elementwise linear interpolation of this and \a v2, at time \a between
+    Vector lerp(const Vector& v2, const Vector& between) const;
+
     ///////////////////////////////////
     // Vector comparison operations. //
     ///////////////////////////////////

@@ -319,6 +319,11 @@ Vector Vector::lerp(const Vector& v2, float between) const
     return *this + (v2 - *this)*between;
 }
 
+Vector Vector::lerp(const Vector& v2, const Vector& between) const
+{
+    return *this + (v2 - *this)*between;
+}
+
 ///////////////////////////////////
 // Vector comparison operations. //
 ///////////////////////////////////

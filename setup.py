@@ -20,6 +20,7 @@ setup(
             'pyglm',
             include_dirs = ['embedded-pycxx-6.2.4'],
             sources = [
+                os.path.join('pyglm', 'module.cpp'),
                 os.path.join('pyglm', 'Vector.cpp'),
                 os.path.join('pyglm', 'Vector_wrap.cpp'),
                 os.path.join('pyglm', 'Quaternion.cpp'),

@@ -36,7 +36,8 @@ public:
     // Constructors and assignment operators. //
     ////////////////////////////////////////////
 
-    /// Creates a quaternion with all components set to 0
+    /// Creates a quaternion with all three axis components (x,y,z) set to 0 and the angle component (w) set to 1
+    /// This is a unit-quaternion which is one way of saying "no rotation". Corresponds to the identity matrix.
     Quaternion();
     /// Creates a quaternion based on the contents of a float array.
     /// \param in_q The four components of the quaternion.

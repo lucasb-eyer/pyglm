@@ -24,6 +24,7 @@ setup(
                 os.path.join('pyglm', 'Vector.cpp'),
                 os.path.join('pyglm', 'Vector_wrap.cpp'),
                 os.path.join('pyglm', 'Quaternion.cpp'),
+                os.path.join('pyglm', 'Quaternion_wrap.cpp'),
                 os.path.join('pyglm', 'Matrix.cpp'),
                 os.path.join(support_dir,'cxxsupport.cxx'),
                 os.path.join(support_dir,'cxx_extensions.cxx'),
